@@ -15,10 +15,7 @@ def search_relevant_chunks(
     k=3
 ):
 
-    # -----------------------------------------------------
     # Convert question into embedding
-    # -----------------------------------------------------
-
     question_embedding = embedding_model.encode(
         [question]
     )
@@ -27,21 +24,13 @@ def search_relevant_chunks(
         question_embedding
     ).astype("float32")
 
-
-    # -----------------------------------------------------
     # Search FAISS
-    # -----------------------------------------------------
-
     distances, indices = index.search(
         question_embedding,
         k
     )
 
-
-    # -----------------------------------------------------
     # Get relevant chunks
-    # -----------------------------------------------------
-
     relevant_chunks = []
 
     for i in indices[0]:
@@ -52,10 +41,8 @@ def search_relevant_chunks(
                 chunks[i]
             )
 
-
     # Best distance
     best_distance = distances[0][0]
-
 
     return (
         relevant_chunks,
@@ -76,7 +63,6 @@ def create_rag_prompt(
     context = "\n\n".join(
         relevant_chunks
     )
-
 
     prompt = f"""
 You are an AI assistant that answers questions
@@ -114,7 +100,7 @@ ANSWER:
 
 
 # =========================================================
-# 3. ASK GEMINI
+# 3. ASK GROQ
 # =========================================================
 
 def ask_gemini(
@@ -123,21 +109,23 @@ def ask_gemini(
     max_retries=4
 ):
 
-    response = None
-    answer = None
-
-    for attempt in range(
-        max_retries
-    ):
+    for attempt in range(max_retries):
 
         try:
 
-            response = client.models.generate_content(
-                model="gemini-3.8-flash",
-                contents=prompt
+            response = client.chat.completions.create(
+                model="openai/gpt-oss-20b",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature=0.2,
+                max_tokens=1000
             )
 
-            answer = response.text
+            answer = response.choices[0].message.content
 
             return answer
 
@@ -146,38 +134,77 @@ def ask_gemini(
 
             error_message = str(e)
 
+            # =================================================
+            # 429 - RATE LIMIT
+            # =================================================
 
-            # -------------------------------------------------
-            # Handle 503 error
-            # -------------------------------------------------
-
-            if "503" in error_message:
+            if "429" in error_message:
 
                 if attempt < max_retries - 1:
 
                     wait_time = 2 ** attempt
 
-                    time.sleep(
-                        wait_time
-                    )
+                    time.sleep(wait_time)
 
                 else:
 
                     return (
-                        "Gemini is currently experiencing "
-                        "high demand. Please try again later."
+                        "ERROR_STATUS: 429\n"
+                        "ERROR_TYPE: Too Many Requests / Rate Limit\n"
+                        f"ERROR_MESSAGE: {error_message}"
                     )
 
+
+            # =================================================
+            # 503 - SERVICE UNAVAILABLE
+            # =================================================
+
+            elif "503" in error_message:
+
+                if attempt < max_retries - 1:
+
+                    wait_time = 2 ** attempt
+
+                    time.sleep(wait_time)
+
+                else:
+
+                    return (
+                        "ERROR_STATUS: 503\n"
+                        "ERROR_TYPE: Service Unavailable\n"
+                        f"ERROR_MESSAGE: {error_message}"
+                    )
+
+
+            # =================================================
+            # 500 - INTERNAL SERVER ERROR
+            # =================================================
+
+            elif "500" in error_message:
+
+                return (
+                    "ERROR_STATUS: 500\n"
+                    "ERROR_TYPE: Internal Server Error\n"
+                    f"ERROR_MESSAGE: {error_message}"
+                )
+
+
+            # =================================================
+            # OTHER GROQ ERRORS
+            # =================================================
 
             else:
 
                 return (
-                    f"Gemini API error: {e}"
+                    "ERROR_STATUS: UNKNOWN\n"
+                    "ERROR_TYPE: Groq API Error\n"
+                    f"ERROR_MESSAGE: {error_message}"
                 )
 
 
     return (
-        "Unable to generate an answer."
+        "ERROR_STATUS: UNKNOWN\n"
+        "ERROR_TYPE: Unable to generate answer\n"
     )
 
 
@@ -194,10 +221,7 @@ def answer_question(
     relevance_threshold=1.20
 ):
 
-    # -----------------------------------------------------
     # Search document
-    # -----------------------------------------------------
-
     (
         relevant_chunks,
         best_distance,
@@ -210,11 +234,7 @@ def answer_question(
         k=3
     )
 
-
-    # -----------------------------------------------------
     # Check whether question is relevant
-    # -----------------------------------------------------
-
     if best_distance > relevance_threshold:
 
         return (
@@ -224,26 +244,17 @@ def answer_question(
             relevant_chunks
         )
 
-
-    # -----------------------------------------------------
     # Create RAG prompt
-    # -----------------------------------------------------
-
     prompt = create_rag_prompt(
         question,
         relevant_chunks
     )
 
-
-    # -----------------------------------------------------
-    # Ask Gemini
-    # -----------------------------------------------------
-
+    # Ask Groq
     answer = ask_gemini(
         client,
         prompt
     )
-
 
     return (
         answer,
