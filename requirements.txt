@@ -5,5 +5,5 @@ langchain-text-splitters
 pypdf
 sentence-transformers
 faiss-cpu
-google-genai
+groq
 python-dotenv
