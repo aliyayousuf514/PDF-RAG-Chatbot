@@ -2,7 +2,7 @@ import streamlit as st
 import os
 
 from dotenv import load_dotenv
-from google import genai
+from groq import Groq
 
 from utils import (
     load_embedding_model,
@@ -43,8 +43,8 @@ st.write(
 
 load_dotenv()
 
-GEMINI_API_KEY = os.getenv(
-    "GEMINI_API_KEY"
+GROQ_API_KEY = os.getenv(
+    "GROQ_API_KEY"
 )
 
 
@@ -52,28 +52,28 @@ GEMINI_API_KEY = os.getenv(
 # Streamlit Cloud Secrets
 # ---------------------------------------------------------
 
-if not GEMINI_API_KEY:
+if not GROQ_API_KEY:
 
     try:
 
-        GEMINI_API_KEY = st.secrets[
-            "GEMINI_API_KEY"
+        GROQ_API_KEY = st.secrets[
+            "GROQ_API_KEY"
         ]
 
     except Exception:
 
-        GEMINI_API_KEY = None
+        GROQ_API_KEY = None
 
 
 # =========================================================
 # 4. CHECK API KEY
 # =========================================================
 
-if not GEMINI_API_KEY:
+if not GROQ_API_KEY:
 
     st.error(
-        "Gemini API key not found. "
-        "Please add GEMINI_API_KEY to your .env file "
+        "Groq API key not found. "
+        "Please add GROQ_API_KEY to your .env file "
         "or Streamlit Cloud Secrets."
     )
 
@@ -81,11 +81,11 @@ if not GEMINI_API_KEY:
 
 
 # =========================================================
-# 5. CREATE GEMINI CLIENT
+# 5. CREATE GROQ CLIENT
 # =========================================================
 
-client = genai.Client(
-    api_key=GEMINI_API_KEY
+client = Groq(
+    api_key=GROQ_API_KEY
 )
 
 
@@ -341,13 +341,91 @@ if question:
             )
 
 
-        # -------------------------------------------------
-        # Display answer
-        # -------------------------------------------------
+        # =================================================
+        # CHECK FOR GROQ API ERROR
+        # =================================================
 
-        st.markdown(
-            answer
-        )
+        if answer.startswith("ERROR_STATUS:"):
+
+            # ---------------------------------------------
+            # 429 - Rate Limit
+            # ---------------------------------------------
+
+            if "ERROR_STATUS: 429" in answer:
+
+                st.error(
+                    "🚨 Groq API Rate Limit (429)"
+                )
+
+                st.warning(
+                    "Too many requests were sent to "
+                    "the Groq API. Please wait a little "
+                    "while before trying again."
+                )
+
+
+            # ---------------------------------------------
+            # 503 - Service Unavailable
+            # ---------------------------------------------
+
+            elif "ERROR_STATUS: 503" in answer:
+
+                st.error(
+                    "⚠️ Groq Service Unavailable (503)"
+                )
+
+                st.warning(
+                    "Groq is temporarily unavailable "
+                    "or experiencing high demand. "
+                    "Please try again later."
+                )
+
+
+            # ---------------------------------------------
+            # 500 - Internal Server Error
+            # ---------------------------------------------
+
+            elif "ERROR_STATUS: 500" in answer:
+
+                st.error(
+                    "❌ Groq Internal Server Error (500)"
+                )
+
+
+            # ---------------------------------------------
+            # Unknown error
+            # ---------------------------------------------
+
+            else:
+
+                st.error(
+                    "❌ Groq API Error"
+                )
+
+
+            # ---------------------------------------------
+            # SHOW ACTUAL ERROR DETAILS
+            # ---------------------------------------------
+
+            with st.expander(
+                "🔍 Show Technical Error Details"
+            ):
+
+                st.code(
+                    answer,
+                    language="text"
+                )
+
+
+        # =================================================
+        # NORMAL ANSWER
+        # =================================================
+
+        else:
+
+            st.markdown(
+                answer
+            )
 
 
     # -----------------------------------------------------
