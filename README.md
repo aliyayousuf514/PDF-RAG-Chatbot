@@ -1,6 +1,6 @@
 # 📄 AI PDF RAG Chatbot
 
-An AI-powered PDF Question Answering chatbot built with **Python, Streamlit, Sentence Transformers, FAISS, and Google Gemini API**.
+An AI-powered PDF Question Answering chatbot built with **Python, Streamlit, Sentence Transformers, FAISS, and Groq API**.
 
 The application allows users to upload a PDF document and ask questions about its content. The system uses **Retrieval-Augmented Generation (RAG)** to retrieve the most relevant information from the uploaded document before generating an answer.
 
@@ -9,7 +9,7 @@ The application allows users to upload a PDF document and ask questions about it
 ## 🚀 Live Demo
 
 🔗 **Streamlit App:**  
-Add your deployed Streamlit URL here
+https://pdf-rag-chatbot-9zkexlupjgwwrwjspqc4ez.streamlit.app/
 
 🔗 **GitHub Repository:**  
 Add your GitHub repository URL here
@@ -28,7 +28,7 @@ This project provides an interactive AI chatbot that allows users to:
 - 🧠 Generate embeddings using Sentence Transformers
 - 🔎 Store and search embeddings using FAISS
 - 💬 Ask questions about the uploaded document
-- 🤖 Generate answers using Google Gemini
+- 🤖 Generate answers using Groq API
 - 📚 Retrieve relevant document information before answering
 - 🗑️ Clear chat history when needed
 
@@ -70,7 +70,7 @@ The project follows a Retrieval-Augmented Generation architecture.
            Relevant PDF Chunks
                        │
                        ▼
-                Gemini API
+                Groq API
                        │
                        ▼
               💬 Final Answer
