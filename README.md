@@ -12,7 +12,7 @@ The application allows users to upload a PDF document and ask questions about it
 https://pdf-rag-chatbot-9zkexlupjgwwrwjspqc4ez.streamlit.app/
 
 🔗 **GitHub Repository:**  
-Add your GitHub repository URL here
+https://github.com/aliyayousuf514/PDF-RAG-Chatbot
 
 ---
 
